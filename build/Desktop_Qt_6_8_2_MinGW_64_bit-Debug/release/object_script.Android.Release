@@ -1,0 +1,12 @@
+release/bluetooth.o
+release/main.o
+release/mainwindow.o
+release/processdata.o
+release/qcustomplot.o
+release/receiver.o
+release/sender.o
+release/moc_mainwindow.o
+release/moc_processdata.o
+release/moc_qcustomplot.o
+release/moc_receiver.o
+release/moc_sender.o

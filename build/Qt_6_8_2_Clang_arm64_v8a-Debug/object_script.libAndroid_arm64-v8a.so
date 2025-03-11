@@ -1,0 +1,13 @@
+bluetooth.obj
+main.obj
+mainwindow.obj
+processdata.obj
+qcustomplot.obj
+receiver.obj
+sender.obj
+moc_bluetooth.obj
+moc_mainwindow.obj
+moc_processdata.obj
+moc_qcustomplot.obj
+moc_receiver.obj
+moc_sender.obj

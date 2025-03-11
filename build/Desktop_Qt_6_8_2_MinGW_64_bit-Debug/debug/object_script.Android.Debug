@@ -1,0 +1,12 @@
+debug/bluetooth.o
+debug/main.o
+debug/mainwindow.o
+debug/processdata.o
+debug/qcustomplot.o
+debug/receiver.o
+debug/sender.o
+debug/moc_mainwindow.o
+debug/moc_processdata.o
+debug/moc_qcustomplot.o
+debug/moc_receiver.o
+debug/moc_sender.o
