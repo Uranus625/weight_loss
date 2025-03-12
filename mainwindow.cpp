@@ -7,9 +7,10 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , blueDevice(new BlueDevice())
-    , bluetoothThread(new QThread())
 {
     ui->setupUi(this);
+    Adaptive_screen();
+
     setplot();   //设置绘图
     setbutton();  //设置按钮
     setspinbox();
@@ -33,11 +34,30 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    if (bluetoothThread && bluetoothThread->isRunning()) {
-        bluetoothThread->quit();
-        bluetoothThread->wait();
-    }
     delete ui;
+}
+
+void MainWindow::Adaptive_screen()
+{
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->availableGeometry();
+    resize(screenGeometry.width(), screenGeometry.height());
+
+    int w = width();
+    int h = height();
+
+    ui->myCustomPlot->setGeometry(330 * w / 1023, 20 * h / 703, 661 * w / 1023, 331 * h / 703);
+    ui->listWidget->setGeometry(20 * w / 1023, 40 * h / 703, 271 * w / 1023, 301 * h / 703);
+    ui->search_button->setGeometry(20 * w / 1023, 360 * h / 703, 271 * w / 1023, 41 * h / 703);
+    ui->connect_button->setGeometry(20 * w / 1023, 420 * h / 703, 271 * w / 1023, 41 * h / 703);
+    ui->front_button->setGeometry(610 * w / 1023, 390 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->behind_button->setGeometry(610 * w / 1023, 570 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->left_button->setGeometry(500 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->right_button->setGeometry(720 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->revolve_button->setGeometry(610 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->spinBox->setGeometry(20 * w / 1023, 490 * h / 703, 271 * w / 1023, 61 * h / 703);
+    ui->spinBox_2->setGeometry(20 * w / 1023, 580 * h / 703, 271 * w / 1023, 61 * h / 703);
+    ui->flag->setGeometry(20 * w / 1023, 10 * h / 703, 31 * w / 1023, 21 * h / 703);
 }
 
 void MainWindow::onStartDiscoveryClicked()

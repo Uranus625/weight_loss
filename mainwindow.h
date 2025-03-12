@@ -26,9 +26,7 @@ public:
 private:
     Ui::MainWindow *ui;
     BlueDevice *blueDevice; // 蓝牙设备处理对象
-    QBluetoothDeviceInfo selectedDevice; // 当前选中的设备
     QList<QBluetoothDeviceInfo> mydevice;
-    QThread *bluetoothThread;
     double mTimeOffset;
     void setLED(QLabel* label, int color, int size);
     //void updateData();
@@ -36,6 +34,7 @@ private:
     void setplot();
     void setbutton();
     void setspinbox();
+    void Adaptive_screen();
 
 private slots:
     void onStartDiscoveryClicked(); // 开始设备发现
