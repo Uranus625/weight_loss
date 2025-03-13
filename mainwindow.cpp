@@ -1,35 +1,29 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QThread>
-// #include "bluetooth.h"
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(const QString& username, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , blueDevice(new BlueDevice())
+    , m_username(username)
 {
     ui->setupUi(this);
     Adaptive_screen();
 
     setplot();   //设置绘图
     setbutton();  //设置按钮
-    setspinbox();
-    //blueDevice->moveToThread(bluetoothThread);
+    loadUserData(); // 先加载用户数据
+    setspinbox(); //设置输入框
     setLED(ui->flag, 1, 16);
     ui->listWidget->setStyleSheet("font-size: 20pt;");
 
     connect(ui->search_button, &QPushButton::clicked, this, &MainWindow::onStartDiscoveryClicked);
     connect(ui->connect_button, &QPushButton::clicked, this, &MainWindow::connectdevice);
 
-
     connect(blueDevice, &BlueDevice::deviceDiscovered, this, &MainWindow::onDeviceDiscovered);
     connect(blueDevice, &BlueDevice::connectionEstablished, this, &MainWindow::onConnectionEstablished);
     connect(blueDevice, &BlueDevice::connectionLost, this, &MainWindow::onConnectionLost);
     connect(blueDevice, &BlueDevice::dataReceived, this, &MainWindow::updateData);
-
-    QTimer *timer = new QTimer(this);
-    //connect(timer, &QTimer::timeout, this, &MainWindow::updateData);  //定时器触发运行updateData.
-    timer->start(50); // 50ms 刷新一次
 }
 
 MainWindow::~MainWindow()
@@ -37,33 +31,27 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::Adaptive_screen()
+void MainWindow::loadUserData()
 {
-    QScreen *screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->availableGeometry();
-    resize(screenGeometry.width(), screenGeometry.height());
+    if (m_username.isEmpty()) {
+        return;
+    }
 
-    int w = width();
-    int h = height();
+    // 获取用户最新的体重数据
+    double latestWeight = DatabaseManager::instance().getLatestWeight(m_username, 60.0); // 默认值60kg
+    ui->spinBox->setValue(static_cast<int>(latestWeight));
 
-    ui->myCustomPlot->setGeometry(330 * w / 1023, 20 * h / 703, 661 * w / 1023, 331 * h / 703);
-    ui->listWidget->setGeometry(20 * w / 1023, 40 * h / 703, 271 * w / 1023, 301 * h / 703);
-    ui->search_button->setGeometry(20 * w / 1023, 360 * h / 703, 271 * w / 1023, 41 * h / 703);
-    ui->connect_button->setGeometry(20 * w / 1023, 420 * h / 703, 271 * w / 1023, 41 * h / 703);
-    ui->front_button->setGeometry(610 * w / 1023, 390 * h / 703, 80 * w / 1023, 60 * h / 703);
-    ui->behind_button->setGeometry(610 * w / 1023, 570 * h / 703, 80 * w / 1023, 60 * h / 703);
-    ui->left_button->setGeometry(500 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
-    ui->right_button->setGeometry(720 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
-    ui->revolve_button->setGeometry(610 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
-    ui->spinBox->setGeometry(20 * w / 1023, 490 * h / 703, 271 * w / 1023, 61 * h / 703);
-    ui->spinBox_2->setGeometry(20 * w / 1023, 580 * h / 703, 271 * w / 1023, 61 * h / 703);
-    ui->flag->setGeometry(20 * w / 1023, 10 * h / 703, 31 * w / 1023, 21 * h / 703);
+    // 获取用户最新的百分比数据
+    double latestPercentage = DatabaseManager::instance().getLatestPercentage(m_username, 50.0); // 默认值50%
+    ui->spinBox_2->setValue(static_cast<int>(latestPercentage*100));
+
+    qDebug() << "已加载用户" << m_username << "的数据: 体重=" << latestWeight
+             << "kg, 百分比=" << latestPercentage << "%";
 }
 
 void MainWindow::onStartDiscoveryClicked()
 {
     ui->listWidget->clear();
-    //bluetoothThread->start();
     blueDevice->startDiscovery();
 }
 
@@ -148,16 +136,25 @@ void MainWindow::setbutton()
 void MainWindow::setspinbox()
 {
     connect(ui->spinBox, &QSpinBox::editingFinished, this, [=](){
-        int finalValue = ui->spinBox->value();
-        qDebug() << "最终输入值：" << finalValue;
+        int weightValue = ui->spinBox->value();
+        qDebug() << "体重输入值：" << weightValue;
 
-    }); //提交患者体重
+        // 保存体重数据到数据库
+        if (!m_username.isEmpty()) {
+            DatabaseManager::instance().saveWeightData(m_username, weightValue);
+        }
+    });
 
     connect(ui->spinBox_2, &QSpinBox::editingFinished, this, [=](){
-        int finalValue = ui->spinBox_2->value();
-        qDebug() << "最终输入值：" << finalValue;
+        int Value = ui->spinBox_2->value();
+        qDebug() << "百分比输入值：" << Value;
 
-    }); //上传减重百分比
+        double percentageValue = Value*0.01;
+        // 保存百分比数据到数据库
+        if (!m_username.isEmpty()) {
+            DatabaseManager::instance().savePercentageData(m_username, percentageValue);
+        }
+    });
 }
 
 float Byte_to_Float(const QByteArray &data) {
@@ -225,4 +222,65 @@ void MainWindow::setLED(QLabel* label, int color, int size)
     label->setStyleSheet(SheetStyle);
 }
 
+void MainWindow::Adaptive_screen()
+{
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->availableGeometry();
+    resize(screenGeometry.width(), screenGeometry.height());
+
+    int w = width();
+    int h = height();
+
+    // 计算字体缩放比例
+    double fontRatio = qMin((double)w / 1023.0, (double)h / 703.0);
+
+    ui->mainwidget->setGeometry(0, 0, w, h);
+    ui->myCustomPlot->setGeometry(330 * w / 1023, 20 * h / 703, 661 * w / 1023, 331 * h / 703);
+    ui->listWidget->setGeometry(20 * w / 1023, 40 * h / 703, 271 * w / 1023, 301 * h / 703);
+    ui->search_button->setGeometry(20 * w / 1023, 360 * h / 703, 271 * w / 1023, 41 * h / 703);
+    ui->connect_button->setGeometry(20 * w / 1023, 420 * h / 703, 271 * w / 1023, 41 * h / 703);
+    ui->front_button->setGeometry(610 * w / 1023, 390 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->behind_button->setGeometry(610 * w / 1023, 570 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->left_button->setGeometry(500 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->right_button->setGeometry(720 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->revolve_button->setGeometry(610 * w / 1023, 480 * h / 703, 80 * w / 1023, 60 * h / 703);
+    ui->spinBox->setGeometry(20 * w / 1023, 490 * h / 703, 271 * w / 1023, 61 * h / 703);
+    ui->spinBox_2->setGeometry(20 * w / 1023, 580 * h / 703, 271 * w / 1023, 61 * h / 703);
+    ui->flag->setGeometry(20 * w / 1023, 10 * h / 703, 31 * w / 1023, 21 * h / 703);
+
+    // 调整列表控件字体大小
+    int fontSize = qRound(20 * fontRatio); // 原始大小为20pt
+    ui->listWidget->setStyleSheet(QString("font-size: %1pt;").arg(fontSize));
+
+    // 调整按钮字体大小
+    QFont buttonFont;
+    buttonFont.setPointSize(qRound(12 * fontRatio)); // 假设原始大小为12pt
+    ui->search_button->setFont(buttonFont);
+    ui->connect_button->setFont(buttonFont);
+    ui->front_button->setFont(buttonFont);
+    ui->behind_button->setFont(buttonFont);
+    ui->left_button->setFont(buttonFont);
+    ui->right_button->setFont(buttonFont);
+    ui->revolve_button->setFont(buttonFont);
+
+    // 调整SpinBox字体大小
+    QFont spinBoxFont;
+    spinBoxFont.setPointSize(qRound(12 * fontRatio));
+    ui->spinBox->setFont(spinBoxFont);
+    ui->spinBox_2->setFont(spinBoxFont);
+
+    // 调整图表字体大小
+    QFont plotFont;
+    plotFont.setPointSize(qRound(10 * fontRatio));
+    ui->myCustomPlot->xAxis->setTickLabelFont(plotFont);
+    ui->myCustomPlot->yAxis->setTickLabelFont(plotFont);
+
+    QFont axisLabelFont;
+    axisLabelFont.setPointSize(qRound(12 * fontRatio));
+    ui->myCustomPlot->xAxis->setLabelFont(axisLabelFont);
+    ui->myCustomPlot->yAxis->setLabelFont(axisLabelFont);
+
+    // 刷新图表以应用字体更改
+    ui->myCustomPlot->replot();
+}
 

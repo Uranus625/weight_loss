@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <QLabel>
 #include "bluetooth.h"
+#include "databasemanager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,7 +21,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(const QString& username = QString(), QWidget *parent = nullptr);
     ~MainWindow();
 
 private:
@@ -36,13 +37,15 @@ private:
     void setspinbox();
     void Adaptive_screen();
 
+    QString m_username;
+    void loadUserData();
+
 private slots:
     void onStartDiscoveryClicked(); // 开始设备发现
     void onConnectionEstablished(); // 连接成功
     void onConnectionLost(); // 连接断开
     void onDeviceDiscovered(const QBluetoothDeviceInfo &device); // 发现设备
     void connectdevice();
-    //void onDataReceived(const QByteArray &data);
     void updateData(const QByteArray &data);
 };
 #endif // MAINWINDOW_H
